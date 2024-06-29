@@ -68,7 +68,7 @@ class Model:
         print("\n-------------------------------------------------------") 
         print("\n - initialize LLM")
         
-        self.client = OpenAI(api_key = "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")
+        self.client = OpenAI(api_key = "mykey")
         self.temp   = 1.0
         self.model  = "gpt-3.5-turbo-0125"
         #self.model  = "gpt-4o"
