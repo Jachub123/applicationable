@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+</head>
+<body>
+    <h1>Welcome, {{ username }} to Job Interview </h1>
+    <a href="{{ url_for('logout') }}">Logout</a>
+    <h2>Conversation History</h2>
+    <ul>
+        {% for message in history %}
+            <li>{{ 'User: ' + message['user'] if 'user' in message else 'LLM: ' + message['llm'] }}</li>
+        {% endfor %}
+    </ul>
+    <h2>Send a Message</h2>
+    <form method="post" action="{{ url_for('add_entry') }}">
+        <input type="text" name="entry" placeholder="Your message" required>
+        <button type="submit">Send</button>
+    </form>
+</body>
+</html>
