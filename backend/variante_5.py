@@ -43,6 +43,7 @@ pp = pprint.PrettyPrinter(indent=4)
 
 ###############################################################################
 from flask import Flask, session, redirect, url_for, request, render_template
+from flask_cors import CORS
 
 if True:
     import logging
@@ -54,6 +55,7 @@ if True:
 app = Flask(__name__, template_folder='./templates_1')
 app.secret_key = os.urandom(24)  # Secret key for session management
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
+CORS(app)
 
 ###############################################################################
 # define LLM
@@ -451,5 +453,7 @@ def delete_user_entries(user):
         del user_histories[user]    
         
 ###############################################################################
+
+
 if __name__ == '__main__':
     app.run(debug=False, port=5050)
