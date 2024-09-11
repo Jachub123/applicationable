@@ -71,7 +71,6 @@ class Model:
         Openai_key  = "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"
         self.client = OpenAI(api_key = Openai_key)
         self.temp   = 1.0
-        self.model  = "gpt-3.5-turbo-0125"
         self.model  = "gpt-4o-mini"
         #self.model  = "gpt-4o"
         #self.seed  = 123
