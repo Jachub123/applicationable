@@ -1,2 +1,24 @@
-git commit -a -m "test"
+
+# chatgpt sagt:
+cd /path/to/your/local/repo
+# status des repos pruefen
+git status
+
+# um all aenderungen hinzuzufuegen
+git add .
+
+# um nur ein bestimmtes file hinzuzufuegen
+git add <dateiname>
+
+# Änderungen kommentieren mit Beschreibung
+git commit -m "Beschreibung der Änderungen"
+
+# Wenn du den Befehl git push ausführst, werden deine lokalen Commits zu einem 
+# entfernten Repository (Remote-Repository) hochgeladen. Dies bedeutet, dass 
+# alle Änderungen, die du lokal vorgenommen und committet hast, nun in das 
+# Remote-Repository integriert werden. 
 git push
+
+# Wenn du z.B. git push origin main ausführst, werden die Commits in deinen 
+# lokalen main-Branch in den main-Branch des Remote-Repositorys hochgeladen.
+git push origin main
