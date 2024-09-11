@@ -24,7 +24,8 @@ export class AppComponent implements OnInit {
         pass: password,
       })
       .subscribe((data) => {
-        this.postId = data.id;
+        this.postId = data.text;
+        console.log(data);
       });
   }
   getData() {
