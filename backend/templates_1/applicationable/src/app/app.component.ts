@@ -25,8 +25,6 @@ export class AppComponent implements OnInit {
       })
       .subscribe((data) => {
         this.postId = data.id;
-        console.log('test');
-        console.log(data);
       });
   }
   getData() {
