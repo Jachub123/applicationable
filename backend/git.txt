@@ -22,3 +22,32 @@ git push
 # Wenn du z.B. git push origin main ausführst, werden die Commits in deinen 
 # lokalen main-Branch in den main-Branch des Remote-Repositorys hochgeladen.
 git push origin main
+
+# um json web application zu starten:
+ng serve 
+aufrufen im applicationable
+
+
+#--------------------------------------------------------------------------
+#  main vom Remote-Repository herunterladen
+git pull origin main
+
+# Um zu sehen, ob es Unterschiede zwischen deinem lokalen Code und dem Repository gibt
+git status
+
+# Änderungen in den Dateien ansehen
+git diff
+
+# Holen der Remote-Änderungen ohne sie in den lokalen Branch zu integrieren:
+git fetch
+
+# Unterschiede zwischen deinem lokalen Branch und dem Remote-Branch sehen:
+git log origin/main..HEAD --oneline
+
+
+#--------------------------------------------------------------------------
+# um das frontend zu starten :
+ng serve
+
+
+

@@ -38,25 +38,23 @@ from datetime import timedelta
 import requests, json, os
 import pprint
 
-print("current history")
-pp = pprint.PrettyPrinter(indent=4)
-
-###############################################################################
 from flask import Flask, session, redirect, url_for, request, render_template
 from flask import  jsonify
 from flask_cors import CORS
+###############################################################################
 
-if True:
-    import logging
-    # Disable access log messages
-    log = logging.getLogger('werkzeug')
-    # log.setLevel(logging.ERROR)
-    log.setLevel(logging.WARNING)     # disable Default Flask access log messages
-    
+# Disable default Flask access log messages
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.WARNING)  # Adjust log level
+
 app = Flask(__name__, template_folder='./templates_1')
 app.secret_key = os.urandom(24)  # Secret key for session management
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 CORS(app)
+
+###############################################################################
+# In-memory storage for user histories
+user_histories = {}
 
 ###############################################################################
 # define LLM
@@ -109,7 +107,13 @@ user_histories = {}
 # home function
 @app.route('/')
 def home():
+
     print("home")
+
+    # Receive the full session object
+    session = request.get_json()
+    print("session:\n", session)
+
     # check if session object contains username: 
     if 'username' in session:
         # if username present then user is logged in, then get username and history
@@ -128,36 +132,82 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     
+    print("Login route accessed")
+    print("Session contents before login:", session)
+
     # when the user submits the login form, the browser sends a POST request 
     # with form data request.form['username']. if username not in user-histories
     # an empty list is initialized
     if request.method == 'POST':
+        
         print("method POST")
 
-
-        data = request.get_json()
-        print("data", data)
-        
         # Extract the 'user' and 'pass' parameters
-        username = data.get('user')
-        password = data.get('pass')
-        print("username", username, "password", password)
+        username = request.form.get('user')
+        password = request.form.get('pass')
+        jobtitle = request.form.get('jobtitle')
+        print("username", username, "\npassword", password, "\njobtitle", jobtitle)
         
-        # check user account here 
-        print("checking user account ---> ok")
+        # Check for missing credentials
+        if not username or not password or not jobtitle:
+            return jsonify({'error': 'Username and password and jobtitle are required'}), 400
         
-        text="hier ist die antwort von chatgpt"
-        hist="dies ist die sammlung der historie"
-        phase="dies ist die phase"
-            
-        # after setting the session and init user history redirct to home page
-        print({'response': text, 'historie': hist, 'phase':phase})
-        return jsonify({'response': text, 'historie': hist, 'phase':phase}), 200
-    
+        # Initialize user history if not present, start a new session
+        if username not in user_histories:
+            session.clear()
+            phase    = "greeting"
+            history  = []
+            jobtitle = ""
+            response = "Welcome to out job panel. Please tell us what is your motivation to appyl for this job"
+        else:
+            # dies sollte nicht passieren wenn der user sich ordenlich ausloggt
+            print("if user returns, we would need to check the password")
+            print("but currently we do not allow this, so we start a new session")
+            session.clear()
+            return render_template('login.html')
 
+        # Store session data
+        session['username'] = username
+        session['jobtitle'] = jobtitle
+        session['history']  = history
+        session['response'] = response
+        session['phase']    = phase
+
+        # return the entire session object
+        return jsonify(session), 200
+
+    print("method", request.method, "For login method POST required")
     # when the user first navigates to /login the browser sends a GET request
     # with GET the login functions renders the login template
     return render_template('login.html')
+
+###############################################################################
+@app.route('/add', methods=['POST'])
+def add_entry():
+
+    if 'username' in session:
+        username = session['username']
+        answer = request.form['entry']
+        interview_phase = "answer"
+        
+        # Append answer to user's history
+        user_histories[username].append({
+            'speaker': 'user',
+            'interview_phase': interview_phase,
+            'content': answer
+        })
+
+        # Get response from LLM
+        response = Panel(username, answer)
+        if response:
+            user_histories[username].append(response)
+
+        # Update session with history
+        session['history'] = user_histories[username]
+
+    # Send the entire session object back
+    return jsonify(session)
+
 
 ###############################################################################
 @app.route('/logout')
@@ -171,27 +221,7 @@ def logout():
     return redirect(url_for('login'))
 
 ###############################################################################
-@app.route('/add', methods=['POST'])
-def add_entry():
-    if 'username' in session:
-        
-        username     = session['username']
-        answer       = request.form['entry']
-        interview_phase = "answer"  
-        user_histories[username].append({'speaker':         'user', 
-                                         'interview_phase': interview_phase, 
-                                         'content':         answer})
 
-        # Get response from LLM
-        # Get response from LLM
-        response = Panel(username, answer)
-        if response:
-            user_histories[username].append(response)
-
-    return redirect(url_for('home'))
-
-
-###############################################################################
 def Panel(username, user_message):
     
     import random
@@ -472,4 +502,4 @@ def delete_user_entries(user):
 
 
 if __name__ == '__main__':
-    app.run(debug=False, port=5050)
+    app.run(debug=False, port=5050) 

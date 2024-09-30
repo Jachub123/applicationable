@@ -1,0 +1,1 @@
+from flask import Flask\nfrom flask_cors import CORS\nimport os\nfrom datetime import timedelta\n\napp = Flask(__name__, template_folder='../templates_1')\napp.secret_key = os.urandom(24)  # Secret key for session management\napp.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)\nCORS(app)\n\nfrom app import routes\n
