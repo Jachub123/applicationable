@@ -7,6 +7,10 @@ from logging.handlers import RotatingFileHandler
 import os
 from datetime import timedelta
 
+# - Sets up Flask with static file serving
+# - Configures session handling with 1-hour lifetime
+# - Enables CORS for cross-origin requests
+
 app = Flask(__name__, static_folder='../frontend/src', static_url_path='')
 app.secret_key = 'your-secret-key'  # Change this to a secure random key in production
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -68,17 +72,34 @@ question_bank = {
         "Describe a situation where you had to learn a new skill quickly.",
     ]
 }
-
+#----------------------------------------------------------------------------------
 @app.route('/')
 def serve_index():
+    ''' Handles requests to the root URL (http://localhost:5000/)
+        Returns the main index.html file from the frontend
+        Uses app.static_folder which is set to '../frontend/src'
+    '''
     return send_from_directory(app.static_folder, 'index.html')
 
+#----------------------------------------------------------------------------------
 @app.route('/<path:path>')
 def serve_static(path):
+    ''' Handles all other URL paths
+        Serves any static files requested by the frontend (JS, CSS, images, etc.)
+        The path:path parameter captures any URL path and looks for matching files in the static folder
+        Together with the static folder configuration:
+        app = Flask(__name__, static_folder='../frontend/src', static_url_path='')
+    '''
     return send_from_directory(app.static_folder, path)
 
+#----------------------------------------------------------------------------------
 @app.route('/api/login', methods=['POST'])
 def login():
+    ''' Takes username, password, job_title
+        Creates new user if not exists, or validates existing user
+        Initializes session with user data and first question
+        Returns session data
+    '''
     data = request.json
     username = data.get('username')
     password = data.get('password')
@@ -106,8 +127,13 @@ def login():
     app.logger.info(f'Successful login: {username}')
     return jsonify(dict(session)), 200
 
+#----------------------------------------------------------------------------------
 @app.route('/api/interview', methods=['GET', 'POST'])
 def interview():
+    ''' GET: Returns current session state
+        POST: Processes user's message and generates AI response
+        Maintains conversation history in session
+    '''
     if 'username' not in session:
         return jsonify({'error': 'Not logged in'}), 401
     
@@ -129,13 +155,18 @@ def interview():
         app.logger.info(f'Message processed for user: {session["username"]}')
         return jsonify(dict(session)), 200
 
+#----------------------------------------------------------------------------------
 @app.route('/api/logout', methods=['POST'])
 def logout():
+    ''' Clears user session
+    Logs out user
+    ''' 
     username = session.pop('username', None)
     session.clear()
     app.logger.info(f'User logged out: {username}')
     return jsonify({'message': 'Logged out successfully'}), 200
 
+#----------------------------------------------------------------------------------
 def generate_ai_response(job_title, history, initial=False):
     if initial:
         return random.choice(question_bank['general'])
