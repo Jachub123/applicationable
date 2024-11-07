@@ -17,15 +17,11 @@ import { InterviewEffects } from './interview.effects';
 const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
-  { path: 'interview', component: InterviewComponent, canActivate: [AuthGuard] }
+  { path: 'interview', component: InterviewComponent },
 ];
 
 @NgModule({
-  declarations: [
-    AppComponent,
-    LoginComponent,
-    InterviewComponent
-  ],
+  declarations: [AppComponent, LoginComponent, InterviewComponent],
   imports: [
     BrowserModule,
     FormsModule,
@@ -33,9 +29,9 @@ const routes: Routes = [
     HttpClientModule,
     RouterModule.forRoot(routes),
     StoreModule.forRoot({ interview: interviewReducer }),
-    EffectsModule.forRoot([InterviewEffects])
+    EffectsModule.forRoot([InterviewEffects]),
   ],
   providers: [ApiService, AuthGuard],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
 })
-export class AppModule { }
+export class AppModule {}

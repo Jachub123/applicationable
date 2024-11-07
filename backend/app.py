@@ -135,6 +135,7 @@ def interview():
         Maintains conversation history in session
     '''
     if 'username' not in session:
+        print ("angekommen")
         return jsonify({'error': 'Not logged in'}), 401
     
     if request.method == 'GET':
@@ -150,6 +151,7 @@ def interview():
         ai_response = generate_ai_response(session['job_title'], session['conversation_history'])
         session['conversation_history'].append(('AI', ai_response))
         session['current_question'] = ai_response
+        print ("ai response")
         session.modified = True
         
         app.logger.info(f'Message processed for user: {session["username"]}')

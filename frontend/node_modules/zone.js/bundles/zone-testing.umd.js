@@ -1,4 +1,15 @@
 'use strict';
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
         if (ar || !(i in from)) {
@@ -9,7 +20,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 /**
- * @license Angular v14.2.0-next.0
+ * @license Angular v<unknown>
  * (c) 2010-2022 Google LLC. https://angular.io/
  * License: MIT
  */
@@ -18,13 +29,6 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
         factory();
 })((function () {
     'use strict';
-    /**
-     * @license
-     * Copyright Google LLC All Rights Reserved.
-     *
-     * Use of this source code is governed by an MIT-style license that can be
-     * found in the LICENSE file at https://angular.io/license
-     */
     /**
      * @fileoverview
      * @suppress {globalThis}
@@ -129,7 +133,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
                     // singleton instance of data object, we should create a new one here
                     // The cast to `any` is required to workaround a closure bug which wrongly applies
                     // URL sanitization rules to .data access.
-                    task.data = Object.assign({}, task.data);
+                    task.data = __assign({}, task.data);
                 }
                 task.data[creationTrace] = trace;
             }
@@ -186,13 +190,6 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
         }
     }
     computeIgnoreFrames();
-    /**
-     * @license
-     * Copyright Google LLC All Rights Reserved.
-     *
-     * Use of this source code is governed by an MIT-style license that can be
-     * found in the LICENSE file at https://angular.io/license
-     */
     var ProxyZoneSpec = /** @class */ (function () {
         function ProxyZoneSpec(defaultSpecDelegate) {
             if (defaultSpecDelegate === void 0) { defaultSpecDelegate = null; }
@@ -360,13 +357,6 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     // Export the class so that new instances can be created with proper
     // constructor params.
     Zone['ProxyZoneSpec'] = ProxyZoneSpec;
-    /**
-     * @license
-     * Copyright Google LLC All Rights Reserved.
-     *
-     * Use of this source code is governed by an MIT-style license that can be
-     * found in the LICENSE file at https://angular.io/license
-     */
     var SyncTestZoneSpec = /** @class */ (function () {
         function SyncTestZoneSpec(namePrefix) {
             this.runZone = Zone.current;
@@ -388,13 +378,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     // Export the class so that new instances can be created with proper
     // constructor params.
     Zone['SyncTestZoneSpec'] = SyncTestZoneSpec;
-    /**
-     * @license
-     * Copyright Google LLC All Rights Reserved.
-     *
-     * Use of this source code is governed by an MIT-style license that can be
-     * found in the LICENSE file at https://angular.io/license
-     */
+    /// <reference types="jasmine"/>
     Zone.__load_patch('jasmine', function (global, Zone, api) {
         var __extends = function (d, b) {
             for (var p in b)
@@ -553,7 +537,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
                 if (propertyNames) {
                     var defineProperty_1 = Object.defineProperty;
                     Object.defineProperty = function (obj, p, attributes) {
-                        return defineProperty_1.call(this, obj, p, Object.assign(Object.assign({}, attributes), { configurable: true, enumerable: true }));
+                        return defineProperty_1.call(this, obj, p, __assign(__assign({}, attributes), { configurable: true, enumerable: true }));
                     };
                     try {
                         spyObj = originalCreateSpyObj_1.apply(this, args);
@@ -713,17 +697,19 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
             return ZoneQueueRunner;
         })(QueueRunner);
     });
-    /**
-     * @license
-     * Copyright Google LLC All Rights Reserved.
-     *
-     * Use of this source code is governed by an MIT-style license that can be
-     * found in the LICENSE file at https://angular.io/license
-     */
     Zone.__load_patch('jest', function (context, Zone, api) {
         if (typeof jest === 'undefined' || jest['__zone_patch__']) {
             return;
         }
+        // From jest 29 and jest-preset-angular v13, the module transform logic
+        // changed, and now jest-preset-angular use the use the tsconfig target
+        // other than the hardcoded one, https://github.com/thymikee/jest-preset-angular/issues/2010
+        // But jest-angular-preset doesn't introduce the @babel/plugin-transform-async-to-generator
+        // which is needed by angular since `async/await` still need to be transformed
+        // to promise for ES2017+ target.
+        // So for now, we disable to output the uncaught error console log for a temp solution,
+        // until jest-preset-angular find a proper solution.
+        Zone[api.symbol('ignoreConsoleErrorUncaughtError')] = true;
         jest['__zone_patch__'] = true;
         var ProxyZoneSpec = Zone['ProxyZoneSpec'];
         var SyncTestZoneSpec = Zone['SyncTestZoneSpec'];
@@ -1020,13 +1006,6 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
             });
         };
     });
-    /**
-     * @license
-     * Copyright Google LLC All Rights Reserved.
-     *
-     * Use of this source code is governed by an MIT-style license that can be
-     * found in the LICENSE file at https://angular.io/license
-     */
     Zone.__load_patch('mocha', function (global, Zone) {
         var Mocha = global.Mocha;
         if (typeof Mocha === 'undefined') {
@@ -1117,7 +1096,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
         global.describe = global.suite = function () {
             return mochaOriginal.describe.apply(this, wrapDescribeInZone(arguments));
         };
-        global.xdescribe = global.suite.skip = function () {
+        global.xdescribe = global.suite.skip = global.describe.skip = function () {
             return mochaOriginal.describe.skip.apply(this, wrapDescribeInZone(arguments));
         };
         global.describe.only = global.suite.only = function () {
@@ -1126,7 +1105,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
         global.it = global.specify = global.test = function () {
             return mochaOriginal.it.apply(this, wrapTestInZone(arguments));
         };
-        global.xit = global.xspecify = function () {
+        global.xit = global.xspecify = global.it.skip = function () {
             return mochaOriginal.it.skip.apply(this, wrapTestInZone(arguments));
         };
         global.it.only = global.test.only = function () {
@@ -1170,14 +1149,8 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
             };
         })(Mocha.Runner.prototype.runTest, Mocha.Runner.prototype.run);
     });
-    /**
-     * @license
-     * Copyright Google LLC All Rights Reserved.
-     *
-     * Use of this source code is governed by an MIT-style license that can be
-     * found in the LICENSE file at https://angular.io/license
-     */
     (function (_global) {
+        var _a;
         var AsyncTestZoneSpec = /** @class */ (function () {
             function AsyncTestZoneSpec(finishCallback, failCallback, namePrefix) {
                 this.finishCallback = finishCallback;
@@ -1255,7 +1228,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
                 }
                 if (task.type === 'microTask' && task.data && task.data instanceof Promise) {
                     // check whether the promise is a chained promise
-                    if (task.data[AsyncTestZoneSpec.symbolParentUnresolved] === true) {
+                    if (task.data[_a.symbolParentUnresolved] === true) {
                         // chained promise is being scheduled
                         this.unresolvedChainedPromiseCount--;
                     }
@@ -1340,7 +1313,10 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
             };
             return AsyncTestZoneSpec;
         }());
-        AsyncTestZoneSpec.symbolParentUnresolved = Zone.__symbol__('parentUnresolved');
+        _a = AsyncTestZoneSpec;
+        (function () {
+            _a.symbolParentUnresolved = Zone.__symbol__('parentUnresolved');
+        })();
         // Export the class so that new instances can be created with proper
         // constructor params.
         Zone['AsyncTestZoneSpec'] = AsyncTestZoneSpec;
@@ -1433,14 +1409,8 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
             return Zone.current.runGuarded(fn, context);
         }
     });
-    /**
-     * @license
-     * Copyright Google LLC All Rights Reserved.
-     *
-     * Use of this source code is governed by an MIT-style license that can be
-     * found in the LICENSE file at https://angular.io/license
-     */
     (function (global) {
+        var _a;
         var OriginalDate = global.Date;
         // Since when we compile this file to `es2015`, and if we define
         // this `FakeDate` as `class FakeDate`, and then set `FakeDate.prototype`
@@ -1497,14 +1467,14 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
                 return OriginalDate.now();
             };
             Scheduler.prototype.scheduleFunction = function (cb, delay, options) {
-                options = Object.assign({
+                options = __assign({
                     args: [],
                     isPeriodic: false,
                     isRequestAnimationFrame: false,
                     id: -1,
                     isRequeuePeriodic: false
                 }, options);
-                var currentId = options.id < 0 ? Scheduler.nextId++ : options.id;
+                var currentId = options.id < 0 ? _a.nextId++ : options.id;
                 var endTime = this._currentTickTime + delay;
                 // Insert so that scheduler queue remains sorted by end time.
                 var newEntry = {
@@ -1683,8 +1653,11 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
             };
             return Scheduler;
         }());
+        _a = Scheduler;
         // Next scheduler id.
-        Scheduler.nextId = 1;
+        (function () {
+            _a.nextId = 1;
+        })();
         var FakeAsyncTestZoneSpec = /** @class */ (function () {
             function FakeAsyncTestZoneSpec(namePrefix, trackPendingRequestAnimationFrame, macroTaskOptions) {
                 if (trackPendingRequestAnimationFrame === void 0) { trackPendingRequestAnimationFrame = false; }
@@ -2189,13 +2162,6 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
         Zone[api.symbol('fakeAsyncTest')] =
             { resetFakeAsyncZone: resetFakeAsyncZone, flushMicrotasks: flushMicrotasks, discardPeriodicTasks: discardPeriodicTasks, tick: tick, flush: flush, fakeAsync: fakeAsync };
     }, true);
-    /**
-     * @license
-     * Copyright Google LLC All Rights Reserved.
-     *
-     * Use of this source code is governed by an MIT-style license that can be
-     * found in the LICENSE file at https://angular.io/license
-     */
     /**
      * Promise for async/fakeAsync zoneSpec test
      * can support async operation which not supported by zone.js
