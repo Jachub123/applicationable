@@ -15,7 +15,15 @@ app = Flask(__name__, static_folder='../frontend/src', static_url_path='')
 app.secret_key = 'your-secret-key'  # Change this to a secure random key in production
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
-CORS(app, supports_credentials=True)
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Allow cookies in cross-origin requests
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+
+CORS(app, 
+     supports_credentials=True,
+     resources={r"/api/*": {"origins": ["http://localhost:4200"]}},
+     allow_headers=["Content-Type"],
+     expose_headers=["Access-Control-Allow-Credentials"],
+     methods=["GET", "POST", "OPTIONS"])
 
 # Configure logging
 if not os.path.exists('logs'):
@@ -78,6 +86,17 @@ def serve_index():
     ''' Handles requests to the root URL (http://localhost:5000/)
         Returns the main index.html file from the frontend
         Uses app.static_folder which is set to '../frontend/src'
+
+        send_from_directory takes two main parameters:
+        directory: The directory to serve files from (in this case app.static_folder which is '../frontend/src')
+        filename: The name of the file to serve (in this case 'index.html' or whatever path is requested)
+        
+        It does:
+        Safely resolves the file path to prevent directory traversal attacks
+        Checks if the file exists
+        Sets appropriate HTTP headers (like Content-Type based on file extension)
+        Returns the file content to the client
+        Handles errors (returns 404 if file not found)
     '''
     return send_from_directory(app.static_folder, 'index.html')
 
@@ -119,13 +138,20 @@ def login():
         app.logger.warning(f'Failed login attempt for user: {username}')
         return jsonify({'error': 'Invalid credentials'}), 401
     
+    session.permanent = True  # Use the permanent session lifetime
     session['username'] = username
     session['job_title'] = job_title
     session['conversation_history'] = []
     session['current_question'] = generate_ai_response(job_title, [], initial=True)
+
+    print("session activated:\n", session)
     
     app.logger.info(f'Successful login: {username}')
-    return jsonify(dict(session)), 200
+    return jsonify({
+        'username': username,
+        'job_title': job_title,
+        'current_question': session['current_question']
+    }), 200
 
 #----------------------------------------------------------------------------------
 @app.route('/api/interview', methods=['GET', 'POST'])
@@ -135,14 +161,21 @@ def interview():
         Maintains conversation history in session
     '''
     if 'username' not in session:
-        print ("angekommen")
+        print("error: user not logged in")
+        app.logger.warning('Unauthorized interview access attempt')
         return jsonify({'error': 'Not logged in'}), 401
     
     if request.method == 'GET':
-        return jsonify(dict(session)), 200
+        return jsonify({
+            'username': session['username'],
+            'job_title': session['job_title'],
+            'conversation_history': session['conversation_history'],
+            'current_question': session['current_question']
+        }), 200
     
     elif request.method == 'POST':
         user_message = request.json.get('message')
+        print("interview received POST request, with message:", user_message)
         if not user_message:
             app.logger.warning(f'Empty message received from user: {session["username"]}')
             return jsonify({'error': 'Missing message'}), 400
@@ -151,11 +184,16 @@ def interview():
         ai_response = generate_ai_response(session['job_title'], session['conversation_history'])
         session['conversation_history'].append(('AI', ai_response))
         session['current_question'] = ai_response
-        print ("ai response")
+        print("interview responds, with current_question:", ai_response)
         session.modified = True
         
         app.logger.info(f'Message processed for user: {session["username"]}')
-        return jsonify(dict(session)), 200
+        return jsonify({
+            'username': session['username'],
+            'job_title': session['job_title'],
+            'conversation_history': session['conversation_history'],
+            'current_question': session['current_question']
+        }), 200
 
 #----------------------------------------------------------------------------------
 @app.route('/api/logout', methods=['POST'])

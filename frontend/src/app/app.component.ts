@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { ServiceService } from './services/service.service';
+import { ApiService } from './services/api.service';
 import { LocalStorageService } from './services/local-storage-service.service';
 
 @Component({
@@ -9,91 +8,73 @@ import { LocalStorageService } from './services/local-storage-service.service';
   styleUrls: ['./app.component.scss'],
 })
 export class AppComponent implements OnInit {
-  newdata: any;
-  chat: any = this.lss.getItem('chat');
-  currentQuestion: any =
-    this.lss.getItem('currentQuestion') === null || undefined
-      ? undefined
-      : this.lss.getItem('loggedIn');
-  showChat: any =
-    this.lss.getItem('loggedIn') === null || undefined
-      ? 'false'
-      : this.lss.getItem('loggedIn');
-
+  chatData: any = null;
+  currentQuestion: string | null = null;
+  showChat: boolean = false;
+  
   pass: string = '';
   name: string = '';
   job: string = '';
+  
   constructor(
-    private _apiservice: ServiceService,
-    private http: HttpClient,
+    private apiService: ApiService,
     private lss: LocalStorageService
-  ) {}
+  ) {
+    this.loadStoredData();
+  }
+
   ngOnInit(): void {
-    console.log("this.lss.getItem('loggedIn')");
-    console.log(this.lss.getItem('loggedIn'));
-    console.log('showChat');
-    console.log(this.showChat);
+    console.log('Logged in status:', this.showChat);
+  }
+
+  private loadStoredData() {
+    const storedChat = this.lss.getItem('chat');
+    if (storedChat) {
+      this.chatData = JSON.parse(storedChat);
+      this.currentQuestion = this.lss.getItem('currentQuestion');
+      this.showChat = this.lss.getItem('loggedIn') === 'true';
+    }
   }
 
   register(username: string, password: string, job: string) {
-    this.http
-      .post<any>('http://127.0.0.1:5000/api/login', {
-        username: username,
-        password: password,
-        jobTitle: job,
-      })
-      .subscribe((data) => {
-        this.lss.setItem('chat', JSON.stringify(data));
-        this.lss.setItem('currentQuestion', data.current_question);
-        this.retriveLocalStorage();
+    this.apiService.login(username, password, job).subscribe((data) => {
+      this.chatData = data;
+      this.currentQuestion = data.current_question;
+      this.showChat = true;
+      
+      this.lss.setItem('chat', JSON.stringify(data));
+      this.lss.setItem('currentQuestion', data.current_question);
+      this.lss.setItem('loggedIn', 'true');
+      
+      console.log('Login response:', data);
+    });
+  }
 
-        if (this.currentQuestion) {
-          this.lss.setItem('loggedIn', 'true');
-          this.retriveLocalStorage();
-        }
-        console.log(data);
-      });
-  }
-  retriveLocalStorage() {
-    this.currentQuestion =
-      this.lss.getItem('currentQuestion') === null || undefined
-        ? null
-        : this.lss.getItem('currentQuestion');
-    this.showChat =
-      this.lss.getItem('loggedIn') === null || undefined
-        ? 'false'
-        : this.lss.getItem('loggedIn');
-    console.log(this.lss.getItem('loggedIn'));
-  }
   logout() {
-    this.lss.clear();
-    this.retriveLocalStorage();
+    this.apiService.logout().subscribe(() => {
+      this.chatData = null;
+      this.currentQuestion = null;
+      this.showChat = false;
+      this.lss.clear();
+    });
   }
 
   sendMsg(msg: string) {
-    console.log(this.chat);
-    var chatObj = JSON.parse(this.chat);
-    console.log(chatObj);
-
-    this.http
-      .post<any>('http://127.0.0.1:5000/api/interview', { message: msg })
-      .subscribe((data) => {
-        this.lss.setItem('chat', data);
-        this.lss.setItem('currentQuestion', data.current_question);
-        if (this.currentQuestion) {
-          this.lss.setItem('loggedIn', 'true');
-          this.retriveLocalStorage();
-        }
-        console.log(data);
-      });
-  }
-  /*   getData() {
-    this._apiservice.getdata().subscribe((res: any) => {
-      this.newdata = res;
-      console.log(res.current_question);
-      if (res.current_question) {
-        this.showChat = true;
-      }
+    if (!msg.trim()) return;
+    
+    this.apiService.sendMessage(msg).subscribe((data) => {
+      this.chatData = data;
+      this.currentQuestion = data.current_question;
+      
+      this.lss.setItem('chat', JSON.stringify(data));
+      this.lss.setItem('currentQuestion', data.current_question);
+      
+      console.log('Message response:', data);
     });
-  } */
+  }
+
+  getMessageDisplay(historyItem: [string, string]): string {
+    const [role, message] = historyItem;
+    return `${role}: ${message}`;
+  }
 }

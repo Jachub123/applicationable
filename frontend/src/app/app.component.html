@@ -1,85 +1,107 @@
-<p>{{ newdata }}</p>
-<section *ngIf="showChat === 'false'" class="bg-gray-50 dark:bg-gray-900">
-  <div
-    class="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0"
-  >
-    <div
-      class="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700"
-    >
-      <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
-        <h1
-          class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white"
-        >
-          Sign in to your account
-        </h1>
-        <form
-          class="space-y-4 md:space-y-6"
-          #f="ngForm"
-          (ngSubmit)="register(name, pass, job) //getData()"
-        >
-          <div>
-            <label
-              for="email"
-              class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-              >Your email</label
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <!-- Login Form -->
+  <section *ngIf="!showChat" class="min-h-screen">
+    <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
+      <div class="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+        <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
+          <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
+            Sign in to start interview
+          </h1>
+          <form class="space-y-4 md:space-y-6" #f="ngForm" (ngSubmit)="register(name, pass, job)">
+            <div>
+              <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Username</label>
+              <input
+                type="text"
+                name="name"
+                [(ngModel)]="name"
+                id="email"
+                class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                placeholder="Enter username"
+                required
+              />
+            </div>
+            <div>
+              <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
+              <input
+                type="password"
+                name="pass"
+                [(ngModel)]="pass"
+                id="password"
+                placeholder="••••••••"
+                class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label for="job" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Job Title</label>
+              <input
+                type="text"
+                name="job"
+                [(ngModel)]="job"
+                id="job"
+                placeholder="e.g. Software Developer"
+                class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              class="w-full text-white bg-slate-700 hover:bg-slate-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
             >
-            <input
-              type="email"
-              name="name"
-              [(ngModel)]="name"
-              id="email"
-              class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-              placeholder="name@company.com"
-              required=""
-            />
-          </div>
-          <div>
-            <label
-              for="password"
-              class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-              >Password</label
-            >
-            <input
-              type="password"
-              name="pass"
-              [(ngModel)]="pass"
-              id="password"
-              placeholder="••••••••"
-              class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-              required=""
-            />
-          </div>
-          <div>
-            <label
-              for="job"
-              class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-              >Jobtitle</label
-            >
-            <input
-              type="text"
-              name="job"
-              [(ngModel)]="job"
-              id="job"
-              placeholder="Engineer"
-              class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-              required=""
-            />
-          </div>
-          <button
-            type="submit"
-            class="w-full text-white bg-slate-700 hover:bg-slate-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
-          >
-            Sign in
-          </button>
-        </form>
+              Start Interview
+            </button>
+          </form>
+        </div>
       </div>
     </div>
-  </div>
-</section>
-<section *ngIf="showChat === 'true'">
-  <a (click)="logout()">logout</a>
-  <p *ngFor="let msg of chat?.conversation_history">{{ msg }}</p>
-  <p>{{ currentQuestion }}</p>
-  <textarea #msg id="msg" name="msg" cols="20" rows="10"></textarea>
-  <button (click)="sendMsg(msg.value)">send</button>
-</section>
+  </section>
+
+  <!-- Chat Interface -->
+  <section *ngIf="showChat" class="min-h-screen p-4">
+    <div class="max-w-3xl mx-auto bg-white rounded-lg shadow dark:bg-gray-800">
+      <!-- Header -->
+      <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Interview Session</h2>
+        <button 
+          (click)="logout()" 
+          class="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+        >
+          End Interview
+        </button>
+      </div>
+
+      <!-- Chat History -->
+      <div class="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+        <div *ngFor="let msg of chatData?.conversation_history" class="p-3 rounded-lg" 
+             [ngClass]="{'bg-gray-100 dark:bg-gray-700': msg[0] === 'User', 'bg-blue-100 dark:bg-gray-600': msg[0] === 'AI'}">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ msg[0] }}</p>
+          <p class="text-gray-800 dark:text-gray-200">{{ msg[1] }}</p>
+        </div>
+      </div>
+
+      <!-- Current Question -->
+      <div *ngIf="currentQuestion" class="p-4 bg-yellow-50 dark:bg-gray-700 border-t dark:border-gray-600">
+        <p class="font-medium text-gray-900 dark:text-white">Current Question:</p>
+        <p class="text-gray-800 dark:text-gray-200">{{ currentQuestion }}</p>
+      </div>
+
+      <!-- Message Input -->
+      <div class="p-4 border-t dark:border-gray-700">
+        <div class="flex space-x-2">
+          <textarea
+            #msg
+            rows="3"
+            class="flex-1 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            placeholder="Type your response..."
+          ></textarea>
+          <button
+            (click)="sendMsg(msg.value); msg.value = ''"
+            class="px-6 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
