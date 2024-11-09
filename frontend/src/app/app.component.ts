@@ -30,7 +30,6 @@ export class AppComponent implements OnInit {
   constructor(private http: HttpClient, private lss: LocalStorageService) {}
 
   ngOnInit(): void {
-    console.log(this.lss?.getItem('chat'));
     this.updateChat();
   }
 
@@ -43,6 +42,7 @@ export class AppComponent implements OnInit {
   }
 
   register(username: string, password: string, job: string) {
+    this.retriveLocalStorage();
     this.http
       .post<any>(
         'http://127.0.0.1:5000/api/login',
@@ -89,6 +89,7 @@ export class AppComponent implements OnInit {
     this.showSuccess = '';
   }
   logout() {
+    this.retriveLocalStorage();
     this.http
       .post<any>(
         'http://127.0.0.1:5000/api/logout',
@@ -104,6 +105,7 @@ export class AppComponent implements OnInit {
   }
 
   sendMsg(msg: string) {
+    this.retriveLocalStorage();
     this.http
       .post<any>(
         'http://127.0.0.1:5000/api/interview',
