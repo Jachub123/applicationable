@@ -144,5 +144,6 @@ export class AppComponent implements OnInit {
         this.showChat = true;
       }
     });
-  } */
+  }
+*/
 }

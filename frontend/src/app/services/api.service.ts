@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
@@ -8,14 +8,9 @@ import { environment } from '../../environments/environment';
   providedIn: 'root'
 })
 export class ApiService {
-  private apiUrl = environment.apiUrl;
-  private tokenSubject: BehaviorSubject<string | null>;
-  public token: Observable<string | null>;
+  private apiUrl = `${environment.apiUrl}/api`;  // Add /api prefix
 
-  constructor(private http: HttpClient) {
-    this.tokenSubject = new BehaviorSubject<string | null>(localStorage.getItem('token'));
-    this.token = this.tokenSubject.asObservable();
-  }
+  constructor(private http: HttpClient) {}
 
   private handleError(error: HttpErrorResponse) {
     let errorMessage = 'An unknown error occurred';
@@ -30,22 +25,21 @@ export class ApiService {
   }
 
   login(username: string, password: string, jobTitle: string): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/login`, { username, password, jobTitle })
-      .pipe(
-        tap(response => {
-          console.log('Login successful', response);
-          localStorage.setItem('token', response.access_token);
-          localStorage.setItem('jobTitle', response.job_title);
-          this.tokenSubject.next(response.access_token);
-        }),
-        catchError(this.handleError)
-      );
+    return this.http.post<any>(`${this.apiUrl}/login`, 
+      { username, password, jobTitle }, 
+      { withCredentials: true }  // Enable credentials
+    ).pipe(
+      tap(response => {
+        console.log('Login successful', response);
+        localStorage.setItem('jobTitle', response.job_title);
+      }),
+      catchError(this.handleError)
+    );
   }
 
-  startInterview(page: number = 1, perPage: number = 10): Observable<any> {
+  startInterview(): Observable<any> {
     return this.http.get(`${this.apiUrl}/interview`, { 
-      headers: this.authHeader(),
-      params: { page: page.toString(), per_page: perPage.toString() }
+      withCredentials: true  // Enable credentials
     }).pipe(
       tap(response => console.log('Interview started', response)),
       catchError(this.handleError)
@@ -53,35 +47,31 @@ export class ApiService {
   }
 
   sendMessage(message: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/interview`, { message }, { headers: this.authHeader() })
-      .pipe(
-        tap(response => console.log('Message sent', response)),
-        catchError(this.handleError)
-      );
+    return this.http.post(`${this.apiUrl}/interview`, 
+      { message }, 
+      { withCredentials: true }  // Enable credentials
+    ).pipe(
+      tap(response => console.log('Message sent', response)),
+      catchError(this.handleError)
+    );
   }
 
   logout(): Observable<any> {
-    return this.http.post(`${this.apiUrl}/logout`, {}, { headers: this.authHeader() })
-      .pipe(
-        tap(response => {
-          console.log('Logout successful', response);
-          localStorage.removeItem('token');
-          localStorage.removeItem('jobTitle');
-          this.tokenSubject.next(null);
-        }),
-        catchError(this.handleError)
-      );
+    return this.http.post(`${this.apiUrl}/logout`, 
+      {}, 
+      { withCredentials: true }  // Enable credentials
+    ).pipe(
+      tap(response => {
+        console.log('Logout successful', response);
+        localStorage.removeItem('jobTitle');
+      }),
+      catchError(this.handleError)
+    );
   }
 
   isLoggedIn(): boolean {
-    return !!this.tokenSubject.value;
-  }
-
-  private authHeader() {
-    const token = this.tokenSubject.value;
-    if (token) {
-      return new HttpHeaders().set('Authorization', `Bearer ${token}`);
-    }
-    return new HttpHeaders();
+    // Since we're using session cookies, we'll rely on the backend to tell us
+    // if we're logged in or not through the startInterview endpoint
+    return true;
   }
 }
