@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { ServiceService } from './services/service.service';
 import { LocalStorageService } from './services/local-storage-service.service';
+import { catchError, map, Observable, of } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -10,7 +10,7 @@ import { LocalStorageService } from './services/local-storage-service.service';
 })
 export class AppComponent implements OnInit {
   newdata: any;
-  chat: any = this.lss.getItem('chat');
+  chat: any;
   currentQuestion: any =
     this.lss.getItem('currentQuestion') === null || undefined
       ? undefined
@@ -23,35 +23,57 @@ export class AppComponent implements OnInit {
   pass: string = '';
   name: string = '';
   job: string = '';
-  constructor(
-    private _apiservice: ServiceService,
-    private http: HttpClient,
-    private lss: LocalStorageService
-  ) {}
+  test: boolean = true;
+  showWarn: string = '';
+  showSuccess: string = '';
+
+  constructor(private http: HttpClient, private lss: LocalStorageService) {}
+
   ngOnInit(): void {
-    console.log("this.lss.getItem('loggedIn')");
-    console.log(this.lss.getItem('loggedIn'));
-    console.log('showChat');
-    console.log(this.showChat);
+    console.log(this.lss?.getItem('chat'));
+    this.updateChat();
+  }
+
+  updateChat() {
+    this.chat = JSON.parse(
+      this.lss.getItem('chat') !== 'undefined'
+        ? <string>this.lss.getItem('chat')
+        : '{}'
+    );
   }
 
   register(username: string, password: string, job: string) {
     this.http
-      .post<any>('http://127.0.0.1:5000/api/login', {
-        username: username,
-        password: password,
-        jobTitle: job,
-      })
-      .subscribe((data) => {
-        this.lss.setItem('chat', JSON.stringify(data));
-        this.lss.setItem('currentQuestion', data.current_question);
-        this.retriveLocalStorage();
+      .post<any>(
+        'http://127.0.0.1:5000/api/login',
+        {
+          username: username,
+          password: password,
+          jobTitle: job,
+        },
 
-        if (this.currentQuestion) {
-          this.lss.setItem('loggedIn', 'true');
-          this.retriveLocalStorage();
-        }
-        console.log(data);
+        { observe: 'response', withCredentials: true }
+      )
+      .pipe(
+        map((response) => {
+          if (response.status === 200) {
+            this.lss.setItem('loggedIn', 'true');
+            this.retriveLocalStorage();
+          }
+        }),
+        catchError((error: any): Observable<any> => {
+          if (error) {
+            this.showWarn = error.error.error;
+          }
+          // after handling error, return a new observable
+          // that doesn't emit any values and completes
+          return of();
+        })
+      )
+      .subscribe((data) => {
+        console.log(JSON.stringify(data));
+        this.lss.setItem('chat', JSON.stringify(data));
+        this.retriveLocalStorage();
       });
   }
   retriveLocalStorage() {
@@ -63,23 +85,50 @@ export class AppComponent implements OnInit {
       this.lss.getItem('loggedIn') === null || undefined
         ? 'false'
         : this.lss.getItem('loggedIn');
-    console.log(this.lss.getItem('loggedIn'));
+    this.showWarn = '';
+    this.showSuccess = '';
   }
   logout() {
-    this.lss.clear();
-    this.retriveLocalStorage();
+    this.http
+      .post<any>(
+        'http://127.0.0.1:5000/api/logout',
+        {},
+        { withCredentials: true }
+      )
+      .subscribe((response) => {
+        this.lss.clear();
+        this.updateChat();
+        this.retriveLocalStorage();
+        this.showSuccess = response.message;
+      });
   }
 
   sendMsg(msg: string) {
-    console.log(this.chat);
-    var chatObj = JSON.parse(this.chat);
-    console.log(chatObj);
-
     this.http
-      .post<any>('http://127.0.0.1:5000/api/interview', { message: msg })
+      .post<any>(
+        'http://127.0.0.1:5000/api/interview',
+        { message: msg },
+        { withCredentials: true }
+      )
+      .pipe(
+        catchError((error: any): Observable<any> => {
+          if (error) {
+            if (error.status === 401) {
+              this.lss.setItem('loggedIn', 'false');
+              this.retriveLocalStorage();
+              this.showWarn = error.error.error;
+            }
+          }
+          // after handling error, return a new observable
+          // that doesn't emit any values and completes
+          return of();
+        })
+      )
       .subscribe((data) => {
-        this.lss.setItem('chat', data);
+        console.log(JSON.stringify(data));
+        this.lss.setItem('chat', JSON.stringify(data));
         this.lss.setItem('currentQuestion', data.current_question);
+        this.updateChat();
         if (this.currentQuestion) {
           this.lss.setItem('loggedIn', 'true');
           this.retriveLocalStorage();

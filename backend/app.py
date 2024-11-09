@@ -14,8 +14,14 @@ from datetime import timedelta
 app = Flask(__name__, static_folder='../frontend/src', static_url_path='')
 app.secret_key = 'your-secret-key'  # Change this to a secure random key in production
 app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
-CORS(app, supports_credentials=True)
+CORS(app, 
+     supports_credentials=True,
+     resources={r"/api/*": {"origins": ["http://localhost:4200"]}},
+     allow_headers=["Content-Type"],
+     expose_headers=["Access-Control-Allow-Credentials"])
 
 # Configure logging
 if not os.path.exists('logs'):
