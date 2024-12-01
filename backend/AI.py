@@ -14,7 +14,7 @@ def send_request(task, AI_model="llama3.2"):
     if "gpt" in AI_model.lower():
         
         import openai
-        os.environ["OPENAI_API_KEY"] = "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"
+        os.environ["salkdfjalksdfjalk"] = "....."
 
         # Call OpenAI Chat API
         response = openai.chat.completions.create( model    = AI_model,
