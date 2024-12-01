@@ -1,11 +1,63 @@
+###############################################################################
+# Die zentrale Datenbank des Python Prozesses ist das User spezifische Session 
+# Dictionary. Es enthält:
+# - username
+# - job_title
+# - die gesamte Hitorie des Interviews
+# - die Phasen des Interviews
+# - die aktuelle Aussage (role: "wer spricht"", message:"sagt was")
+#
+# Das Session Dictonary steht allen Python-Modulen als globales Dictionary
+# zur Verfuegung, kann also von allen Modulen gelesen und beschrieben werden.
+#
+# wir speichern die session history in einem tuple weil
+# A tuple is an ordered, immutable collection of items. It can hold a fixed 
+# number of elements, and the order in which they appear is preserved. Once 
+# a tuple is created, its elements cannot be changed.
+#
+# Die Kommunikation mit dem Frontend erfolgt dagegen nur über die Historie und 
+# die aktuelle Frage/Aussage, weil das Session Dictonary nicht (so einfach) 
+# an das Frontend übergeben werden kann.
+#
+# app.py (dieses Hauptmodul, main)
+# - übernimmt die Kommunikation mit dem Frontend
+# - übergibt Session Historie sowie die aktuelle Frage/Botschaft and das Frontend
+# - nimmt die Antwort vom Frontend entgegen
+# - aktualisiert das Session Dictionary mit den Antworten des Frontend
+# - übergibt die Steuerung an AI.panel_moderation, also an die Funktion 
+#   "panel_moderation" in AI.py
+# - empfängt die Antwort der "panel_moderation" (diese wird in das Session-
+#   Dictionary geschrieben) und leitet diese wiederum an das Frontend weiter
+#
+# Inkonsistenz: in Session speichern wir die Historie in 
+#                   - session['history'] 
+#               an das frontend übergeben wird diese aber als
+#                   - 'conversation_history': session['history']
+#
+# Offene Frage: welche parameter verwendet / benötigt das frontend bei
+#               login und interview?
+#               Das backend bietet folgendes an:
+#                return jsonify({
+#                    'username'              : session['username'],
+#                    'job_title'             : session['job_title'],
+#                    'conversation_history'  : session['history'],
+#                    'message'               : session['current_question'],
+#                    'current_question'      : session['current_question']
+#                }), 200
+#
+# Fehler:       im login nimmat das frontend keinen dieser parameter an
+#
+# ak, 29.11.24
+###############################################################################
 from flask import Flask, request, jsonify, session, send_from_directory
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-import random
 import logging
 from logging.handlers import RotatingFileHandler
 import os
 from datetime import timedelta
+
+import AI
 
 # - Sets up Flask with static file serving
 # - Configures session handling with 1-hour lifetime
@@ -17,13 +69,17 @@ app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
+
+#----------------------------------------------------------------------------------
+# cors
 CORS(app, 
      supports_credentials=True,
      resources={r"/api/*": {"origins": ["http://localhost:4200"]}},
      allow_headers=["Content-Type"],
      expose_headers=["Access-Control-Allow-Credentials"])
 
-# Configure logging
+#----------------------------------------------------------------------------------
+# Configure logging for the application
 if not os.path.exists('logs'):
     os.mkdir('logs')
 file_handler = RotatingFileHandler('logs/app.log', maxBytes=10240, backupCount=10)
@@ -35,79 +91,17 @@ app.logger.addHandler(file_handler)
 app.logger.setLevel(logging.INFO)
 app.logger.info('Interview application startup')
 
+#----------------------------------------------------------------------------------
+# Suppress werkzeug's HTTP access logs (default logs)
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)  # Set to ERROR to suppress access logs, only showing errors and above
+# Now only errors will be shown in the console, while application logs are still at INFO level in the file
+
+#----------------------------------------------------------------------------------
 # In-memory user storage (replace with a database in production)
-users = {}
-
-# Question bank (as before)
-question_bank = {
-    'general': [
-        "Can you tell me about your background and experience?",
-        "What are your strengths and weaknesses?",
-        "Where do you see yourself in 5 years?",
-        "Why do you want to work for our company?",
-        "How do you handle stress and pressure?",
-    ],
-    'technical': {
-        'software_developer': [
-            "What programming languages are you proficient in?",
-            "Can you explain the difference between object-oriented and functional programming?",
-            "How do you approach debugging a complex issue?",
-            "What's your experience with version control systems?",
-            "How do you stay updated with the latest technology trends?",
-        ],
-        'data_scientist': [
-            "Can you explain the difference between supervised and unsupervised learning?",
-            "What's your experience with big data technologies?",
-            "How do you approach feature selection in a machine learning project?",
-            "Can you explain the concept of overfitting and how to prevent it?",
-            "What's your experience with deep learning frameworks?",
-        ],
-        'network_engineer': [
-            "Can you explain the OSI model and its layers?",
-            "What's your experience with network security protocols?",
-            "How do you troubleshoot network connectivity issues?",
-            "Can you explain the difference between TCP and UDP?",
-            "What's your experience with cloud networking?",
-        ],
-    },
-    'behavioral': [
-        "Can you describe a challenging project you worked on and how you overcame obstacles?",
-        "How do you handle conflicts in a team environment?",
-        "Tell me about a time when you had to meet a tight deadline.",
-        "How do you prioritize tasks when working on multiple projects?",
-        "Describe a situation where you had to learn a new skill quickly.",
-    ]
-}
-#----------------------------------------------------------------------------------
-@app.route('/')
-def serve_index():
-    ''' Handles requests to the root URL (http://localhost:5000/)
-        Returns the main index.html file from the frontend
-        Uses app.static_folder which is set to '../frontend/src'
-
-        send_from_directory takes two main parameters:
-        directory: The directory to serve files from (in this case app.static_folder which is '../frontend/src')
-        filename: The name of the file to serve (in this case 'index.html' or whatever path is requested)
-        
-        It does:
-        Safely resolves the file path to prevent directory traversal attacks
-        Checks if the file exists
-        Sets appropriate HTTP headers (like Content-Type based on file extension)
-        Returns the file content to the client
-        Handles errors (returns 404 if file not found)
-    '''
-    return send_from_directory(app.static_folder, 'index.html')
-
-#----------------------------------------------------------------------------------
-@app.route('/<path:path>')
-def serve_static(path):
-    ''' Handles all other URL paths
-        Serves any static files requested by the frontend (JS, CSS, images, etc.)
-        The path:path parameter captures any URL path and looks for matching files in the static folder
-        Together with the static folder configuration:
-        app = Flask(__name__, static_folder='../frontend/src', static_url_path='')
-    '''
-    return send_from_directory(app.static_folder, path)
+users    = {}
+AI_model = "llama3.2"
+AI_model = "gpt-4o-mini"
 
 #----------------------------------------------------------------------------------
 @app.route('/api/login', methods=['POST'])
@@ -117,13 +111,22 @@ def login():
         Initializes session with user data and first question
         Returns session data
     '''
+    #--------------------------------------------------------------------
+    # get all request data
     data = request.json
-    username = data.get('username')
-    password = data.get('password')
+    username  = data.get('username')
+    password  = data.get('password')
     job_title = data.get('jobTitle')
+        
+    # job_title = "CAE engineering position specializing in fluid dynamics"
+    
+    #--------------------------------------------------------------------
+    # check user, password and job_title
     
     if not username or not password or not job_title:
-        app.logger.warning(f'Login attempt with missing fields: {data}')
+        message = f'Warning: Login attempt with missing fields: {data}'
+        app.logger.warning(message); print(message)
+        # respond missing fields to frontend
         return jsonify({'error': 'Missing required fields'}), 400
     
     if username not in users:
@@ -131,24 +134,35 @@ def login():
             'password': generate_password_hash(password),
             'job_title': job_title
         }
-        app.logger.info(f'New user created: {username}')
+        message = f'New user created: {username}'
+        app.logger.info(message) #; print(message)
+        
     elif not check_password_hash(users[username]['password'], password):
-        app.logger.warning(f'Failed login attempt for user: {username}')
+        message = f'Warning: Failed login attempt for user: {username}'
+        app.logger.warning(message); print(message)
+        # respond validation error to frontend
         return jsonify({'error': 'Invalid credentials'}), 401
     
-    session.permanent = True  # Use the permanent session lifetime
-    session['username'] = username
-    session['job_title'] = job_title
-    session['conversation_history'] = []
-    session['current_question'] = generate_ai_response(job_title, [], initial=True)
-
-    print("session activated:\n", session)
+    #--------------------------------------------------------------------
+    # update session parameters
+    session.permanent           = True  # Use the permanent session lifetime
+    session['username']         = username
+    session['job_title']        = job_title
+    session['interview_phase']  = "introduction"
+    session['history']          = []
     
-    app.logger.info(f'Successful login: {username}')
+    # get AI response to session history, initial indicaates first contact
+    AI.panel_moderation(AI_model, initial=True)
+
+    message = f'Successful login: {username}'
+    app.logger.info(message) # ; print(message)
+
+    #--------------------------------------------------------------------
+    # response to frontend
     return jsonify({
-        'username': username,
-        'job_title': job_title,
-        'current_question': session['current_question']
+        'username'              : session['username'],
+        'job_title'             : session['job_title'],
+        'conversation_history'  : session['history']
     }), 200
 
 #----------------------------------------------------------------------------------
@@ -158,40 +172,50 @@ def interview():
         POST: Processes user's message and generates AI response
         Maintains conversation history in session
     '''
+    
+    #--------------------------------------------------------------------
     if 'username' not in session:
-        print("error: user not logged in")
-        app.logger.warning('Unauthorized interview access attempt')
+        message = 'error: Unauthorized interview access attempt'
+        app.logger.warning(message); print(message)
         return jsonify({'error': 'Not logged in'}), 401
     
+    #--------------------------------------------------------------------------
+    #  GET request ist nicht erlaubt
     if request.method == 'GET':
-        return jsonify({
-            'username': session['username'],
-            'job_title': session['job_title'],
-            'conversation_history': session['conversation_history'],
-            'current_question': session['current_question']
-        }), 200
-    
+        return jsonify({'error': 'method GET now allowd'}), 401
+
+    #-------------------------------------------------------------------------
+    #  POST request von angemeldetem user (mit hostory) wird von AI beantwortet  
     elif request.method == 'POST':
         user_message = request.json.get('message')
-        print("interview received POST request, with message:", user_message)
+        message = f'interview received message from user: {session["username"]}'
+        app.logger.info(message) #; print(message)
+        
+        # error empty message
         if not user_message:
-            app.logger.warning(f'Empty message received from user: {session["username"]}')
+            message = f'Empty message received from user: {session["username"]}'
+            app.logger.warning(message); print(message)
             return jsonify({'error': 'Missing message'}), 400
         
-        session['conversation_history'].append(('User', user_message))
-        ai_response = generate_ai_response(session['job_title'], session['conversation_history'])
-        session['conversation_history'].append(('AI', ai_response))
-        session['current_question'] = ai_response
-        print("interview responds, with current_question:", ai_response)
-        session.modified = True
+        # user response in session history anhaengen
+        session['history'].append(('User', user_message))
         
-        app.logger.info(f'Message processed for user: {session["username"]}')
+        # übergabe an AI.panel, dieses schreibt die Antwort direkt in history
+        AI.panel_moderation(AI_model)
+        
+        # panel response zurück an frontend
         return jsonify({
-            'username': session['username'],
-            'job_title': session['job_title'],
-            'conversation_history': session['conversation_history'],
-            'current_question': session['current_question']
+            'username'              : session['username'],
+            'job_title'             : session['job_title'],
+            'conversation_history'  : session['history']
         }), 200
+        #return jsonify({
+        #    'username'              : session['username'],
+        #    'job_title'             : session['job_title'],
+        #    'conversation_history'  : session['history'],
+        #    'message'               : session['current_question'],
+        #    'current_question'      : session['current_question']
+        #}), 200
 
 #----------------------------------------------------------------------------------
 @app.route('/api/logout', methods=['POST'])
@@ -205,23 +229,6 @@ def logout():
     return jsonify({'message': 'Logged out successfully'}), 200
 
 #----------------------------------------------------------------------------------
-def generate_ai_response(job_title, history, initial=False):
-    if initial:
-        return random.choice(question_bank['general'])
-    
-    # Determine the appropriate technical questions based on job title
-    technical_questions = question_bank['technical'].get(job_title.lower().replace(' ', '_'), [])
-    if not technical_questions:
-        technical_questions = random.choice(list(question_bank['technical'].values()))
 
-    if len(history) < 3:
-        return random.choice(question_bank['general'] + technical_questions)
-    elif len(history) < 6:
-        return random.choice(technical_questions + question_bank['behavioral'])
-    elif len(history) < 9:
-        return random.choice(question_bank['behavioral'])
-    else:
-        return "Thank you for your responses. We've completed the initial interview questions. Is there anything you'd like to ask about the position or the company?"
-
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(debug=True, use_reloader=False)
