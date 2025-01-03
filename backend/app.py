@@ -101,7 +101,7 @@ log.setLevel(logging.ERROR)  # Set to ERROR to suppress access logs, only showin
 # In-memory user storage (replace with a database in production)
 users    = {}
 AI_model = "llama3.2"
-# AI_model = "gpt-4o-mini"
+AI_model = "gpt-4o-mini"
 
 #----------------------------------------------------------------------------------
 @app.route('/api/login', methods=['POST'])

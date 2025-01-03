@@ -14,12 +14,11 @@ def send_request(task, AI_model="llama3.2"):
     if "gpt" in AI_model.lower():
         
         import openai
-        os.environ["dein openai key"] = "....."
 
         # Call OpenAI Chat API
         response = openai.chat.completions.create( model    = AI_model,
                                                    messages = task,
-                                                   temperature = 0.5
+                                                   temperature = 0.5,
                                                     )
 
         # print(response)
@@ -69,6 +68,7 @@ def send_request(task, AI_model="llama3.2"):
         if debug: print("response"); print(response)
         content = response['message']['content']
         if debug: print("content"); print(content)
+        
         content = json.loads(content.strip().strip("```json").strip())
         
         return content
@@ -79,86 +79,107 @@ def send_request(task, AI_model="llama3.2"):
 # define task
 def define_task():
     task = []
+    session_defaults = {"speaker": "General", "history": [], "job_title": "Unknown", "interview_phase": "introduction"}
+    #session = {**session_defaults, **session}  # Ensure all keys are present with defaults
+
     speaker = session['speaker']
     history = session['history']
     job_title = session['job_title']
     interview_phase = session['interview_phase']
+    
+    print("preparing taks for interview_phase", interview_phase)
 
-    # Common system message
     system_message = {
         'role': 'system',
         'content': (
-            "You are a member of a job assessment panel, assessing a candidate's fit for a position as {}. "
-            "The panel consists of a Moderator, HR, Manager, and Specialist, each contributing questions and evaluations based on their expertise and responsibility."
+            "You are a highly professional and skilled member of a job assessment panel, "
+            "evaluating a candidate's suitability for the role of {}. The panel comprises experts from various domains, "
+            "including HR (focused on interpersonal and organizational skills), management (focused on leadership and strategy), "
+            "and technical specialists (focused on role-specific expertise). Ensure the interview is structured, rigorous, and valuable for both the panel and the candidate."
         ).format(job_title)
     }
 
-    # Define role-specific instructions
+
     phase_instructions = {
         "introduction": (
-            "Guide the conversation, set expectations, and invite the candidate to introduce themselves. "
-            "Example: 'Could you please introduce yourself and tell us a bit about your professional background and why you are interested in this role?'"
+            "Set a positive tone for the interview. Start with a brief introduction of yourself and your role on the panel. \
+             Provide an overview of the interview structure to set expectations, and invite the candidate to share their \
+             professional background, key accomplishments, and motivation for pursuing this role."
+
         ),
         "question": (
-            "Ask targeted questions relevant to the job position based on your expertise. "
-            "Wait for the candidate's response before proceeding."
-        ),
-        "evaluation": (
-            "Provide a final evaluation of the candidate's performance throughout the entire interview process. "
-            "Rate the candidate on a scale of 1 to 10 based on their responses, professional demeanor, and fit for the position. "
-            "Offer a clear recommendation on whether the candidate should be considered for the role, backed by specific reasoning."
-        ),
-        "feedback": (
-            "Summarize the candidate's performance and provide a final decision for hiring or not hiring. "
-            "The recommendation must be based on whether the candidate demonstrates skills and competencies that place them in the top 20% of all candidates. "
-            "Include a concise statement about the panel's consensus on the candidate's strengths, weaknesses, and overall suitability for the role."
+            "Build on the candidate's previous responses by asking follow-up questions or seeking clarification. \
+             Ensure your engagement reflects your panel role. \
+             For example: As an HR representative, you might delve deeper into the candidate’s approach to teamwork. \
+             As a manager, you could explore their decision-making processes further. \
+             As a technical expert, you might ask for more details on the methods or tools they used in their technical examples."
         ),
         "discussion": (
-            "Respond thoughtfully to the candidate's last input, incorporating your and the panel's prior assessments."
-        )
+            "Build on the candidate's previous responses by asking follow-up questions or seeking clarification. \
+             Ensure your engagement reflects your panel role.\
+             For example: As an HR representative, you might delve deeper into the candidate’s approach to teamwork. \
+             As a manager, you could explore their decision-making processes further. \
+             As an expert, you might ask for more details on the methods or tools they used in their daily challenges."
+        ),
+        "evaluation": (
+            "Critically assess the candidate's performance across all aspects of the interview. \
+             Consider their domain-specific expertise, communication skills, adaptability, and alignment with the role's requirements. \
+             Provide a fair rating on a scale of 1-10. Justify your score with specific observations and examples from the interview, \
+             and make a recommendation on their suitability for the role."
+        ),
+        "feedback": (
+            "Conclude the interview with a constructive summary of the candidate’s performance. Highlight their key strengths \
+             and acknowledge areas where improvement is needed. \
+             Ensure the feedback is actionable and provides value to the candidate for their personal and professional development. \
+             Present the panel's collective decision on their suitability for the role and explain the rationale behind it. \
+             Finally offer the candidate a chance for one more question regarding this evaluation."
+        ),
+        "open_questions": (
+            "Engage with the candidate regarding any questions they may have about their evaluation or the feedback provided. \
+             Ensure your responses are clear, respectful, and constructive. \
+             Focus on providing clarity, addressing concerns, and reinforcing actionable takeaways that the candidate can use to grow professionally. \
+             For example: If the candidate asks for specifics on how they could improve, share detailed insights or examples that align with their role aspirations."
+        ),
+        "closing":  
+            "Thank the candidate for their time and participation in the interview. \
+            Reiterate the next steps in the selection process and provide a timeline for when they can expect a decision.\
+            Conclude with a professional and encouraging note, regardless of the outcome."
+
     }
 
-    # Determine response format
     response_formats = {
-        "introduction": {"speaker": "your role", "interview_phase": "introduction",    "message": "your message"},
-        "question"    : {"speaker": "your role", "interview_phase": "question",        "message": "your message"},
-        "discussion"  : {"speaker": "your role", "interview_phase": "discussion",      "message": "your message"},
-        "feedback"    : {"speaker": "Panel as a whole", "interview_phase": "feedback", "message": "your summary"},
-        "evaluation"  : {"speaker": "your role", "evaluation": "your evaluation", "recommendation": "your recommendation"},
-        
+        "introduction": {"speaker": "your role", "interview_phase": "introduction", "message": "your message"},
+        "question": {"speaker": "your role", "interview_phase": "question", "message": "your question"},
+        "discussion": {"speaker": "your role", "interview_phase": "discussion", "message": "your message"},
+        "evaluation": {"speaker": "your role", "evaluation": "your evaluation", "recommendation": "your recommendation"},
+        "feedback": {"speaker": "Panel as a whole", "interview_phase": "feedback", "message": "your summary"},
+        "open_questions": {"speaker": "Panel as a whole", "interview_phase": "open_questions", "message": "your answers"},
+        "closing": {"speaker": "Panel as a whole", "interview_phase": "closing", "message": "your closing of the sesson"},
     }
 
-    # Get the last user input for discussion phase
     user_input = next((message for name, message in reversed(history) if name == "user"), None)
 
-    # Helper function to build user message
     def build_user_message(phase, additional_instructions=""):
+        prior_conversation = "\n".join([f"{name}: {message}" for name, message in history[-5:]])  # Limit to last 5 messages
+        additional_context = f" Last candidate input: '{user_input}'." if phase == "discussion" and user_input else ""
         return {
             'role': 'user',
             'content': (
-                "As a skilled member from the company's {}, you are part of a job assessment panel for the position of {}. "
-                "Your task is to {}. "
-                "This is the interview so far:\n{}\n"
-                "Provide your response using this format: {}"
+                "You are representing {}. Your task is to {}. Here is the interview history:\n{}\n"
+                "Provide your response in this format: {}\n{}"
             ).format(
                 speaker,
-                job_title,
                 additional_instructions,
-                history,
-                response_formats[phase]
+                prior_conversation,
+                response_formats[phase],
+                additional_context
             )
         }
 
-    #----------------------------------------------------------------------------------
-    # Validate interview phase
     if interview_phase not in phase_instructions:
         raise ValueError(f"Unknown interview phase: {interview_phase}")
 
-    #----------------------------------------------------------------------------------
-    # Build task
     user_message = build_user_message(interview_phase, phase_instructions[interview_phase])
-    if interview_phase == "discussion" and user_input:
-        user_message['content'] += f" Last candidate input: '{user_input}'."
 
     task.append(system_message)
     task.append(user_message)
@@ -170,7 +191,7 @@ def define_task():
 def panel_moderation(AI_model, initial=False):
     
     panel_members = ["HR", "Manager", "Specialist"]
-    questions_per_member = 2
+    questions_per_member = 1
     question_loops       = questions_per_member * len(panel_members)
 
     #--------------------------------------------------------------------------
@@ -273,9 +294,46 @@ def panel_moderation(AI_model, initial=False):
         # antwort in history speichern
         session['history'].append((session['speaker'], antwort))
         
+        # jetzt noch Zeit für eine Frage 
+        session['interview_phase'] = "open_questions"
+        
+        return
+    
+    #--------------------------------------------------------------------------
+    elif session['interview_phase'] == "open_questions":
+        
+        session['speaker'] = "Moderator"
+        
+        # create task and call AI
+        task    = define_task()
+        content = send_request(task, AI_model)
+        antwort = content['message']
+        
+        # antwort in history speichern
+        session['history'].append((session['speaker'], antwort))
+        
+        # nächste phase festlegen
+        session['interview_phase'] = "closing"
+        
         return
             
-
+    #--------------------------------------------------------------------------
+    elif session['interview_phase'] == "closing":
+        
+        session['speaker'] = "Moderator"
+        
+        # create task and call AI
+        task    = define_task()
+        content = send_request(task, AI_model)
+        antwort = content['message']
+        
+        # antwort in history speichern
+        session['history'].append((session['speaker'], antwort))
+        
+        # nächste phase festlegen
+        session['interview_phase'] = "closing"
+        
+        return
 ###############################################################################
 # helper functions
 def generate_random_speaker_order(panel_members, turns_per_member):
